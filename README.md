@@ -22,13 +22,13 @@
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 前端界面 | Streamlit |
+| 层级    | 技术                                     |
+| ----- | -------------------------------------- |
+| 前端界面  | Streamlit                              |
 | AI 框架 | LangChain (SQL Agent, zero-shot-react) |
-| 大语言模型 | 通义千问 `qwen-turbo` (阿里云百炼) |
-| 数据库驱动 | PyMySQL + SQLAlchemy |
-| 环境管理 | python-dotenv |
+| 大语言模型 | 通义千问 `qwen-turbo` (阿里云百炼)              |
+| 数据库驱动 | PyMySQL + SQLAlchemy                   |
+| 环境管理  | python-dotenv                          |
 
 ---
 
@@ -36,29 +36,29 @@
 
 系统连接 8 张业务表，Agent 内置对应的业务知识与查询规则：
 
-| 表名 | 说明 | 关键字段 |
-|------|------|---------|
-| `platform_daily_metrics` | 平台每日综合指标 | `stat_date`, `app_dau`, `alipay_dau`, `total_register_users`, `total_service_times` |
-| `platform_mau` | APP 月活及留存 | `date_month`(格式 YYYY-MM-01), `mau`, `mau_percent`, `dau`, `retention_percent` |
-| `resource_total` | 资源位点击量汇总 | `resource_name`, `resource_amount`, `stat_date`, `port` |
-| `5100_detail` | 所有服务使用明细（含服务超市及部分其他资源位） | `service_name`, `service_amount`, `stat_date`, `port`, `resource_name` |
-| `resource_detail` | 资源位明细（腰封/卡片位/头条等具体活动数据） | `resource_name`(资源位类型), `item_name`(活动名), `resource_amount`, `stat_date`, `port` |
-| `core_detail` | 核心功能/金刚位明细 | `resource_name`(功能类型), `item_name`(功能名), `resource_amount`, `stat_date`, `port` |
-| `search_detail` | 搜索词明细 | `search_name`(搜索词), `search_amount`, `stat_date`, `port`, `resource_name` |
-| `app_retention` | APP 新增用户次日留存 | `platform`, `stat_date`, `day_1_retention` |
+| 表名                       | 说明                      | 关键字段                                     |
+| ------------------------ | ----------------------- | ---------------------------------------- |
+| `platform_daily_metrics` | 平台每日综合指标                | `stat_date`, `app_dau`, `alipay_dau`, `total_register_users`, `total_service_times` |
+| `platform_mau`           | APP 月活及留存               | `date_month`(格式 YYYY-MM-01), `mau`, `mau_percent`, `dau`, `retention_percent` |
+| `resource_total`         | 资源位点击量汇总                | `resource_name`, `resource_amount`, `stat_date`, `port` |
+| `5100_detail`            | 所有服务使用明细（含服务超市及部分其他资源位） | `service_name`, `service_amount`, `stat_date`, `port`, `resource_name` |
+| `resource_detail`        | 资源位明细（腰封/卡片位/头条等具体活动数据） | `resource_name`(资源位类型), `item_name`(活动名), `resource_amount`, `stat_date`, `port` |
+| `core_detail`            | 核心功能/金刚位明细              | `resource_name`(功能类型), `item_name`(功能名), `resource_amount`, `stat_date`, `port` |
+| `search_detail`          | 搜索词明细                   | `search_name`(搜索词), `search_amount`, `stat_date`, `port`, `resource_name` |
+| `app_retention`          | APP 新增用户次日留存            | `platform`, `stat_date`, `day_1_retention` |
 
 > **注意**：`resource_detail` / `core_detail` 中，`resource_name` 是资源位**类型**（如 `mid_banner`），`item_name` 是具体**活动/服务名称**（如"装修补贴"）。查询"哪些资源位"时按 `resource_name` 分组，查询"有哪些活动"时按 `item_name` 分组。
 
 **资源位中英文映射（内置到 Prompt）：**
 
-| 英文字段值 | 中文含义 |
-|-----------|---------|
-| `mid_banner` | 腰封 / 首页腰封 |
-| `news_click` | 成都头条 / 头条新闻 |
-| `person_banner_click` | 个人中心腰封 |
-| `top_banner_click` | 顶部 banner |
-| `Hometopic_click` | 卡片位 / 首页专题 |
-| `king_kong` | 金刚位 |
+| 英文字段值                 | 中文含义        |
+| --------------------- | ----------- |
+| `mid_banner`          | 腰封 / 首页腰封   |
+| `news_click`          | 成都头条 / 头条新闻 |
+| `person_banner_click` | 个人中心腰封      |
+| `top_banner_click`    | 顶部 banner   |
+| `Hometopic_click`     | 卡片位 / 首页专题  |
+| `king_kong`           | 金刚位         |
 
 ---
 
@@ -254,33 +254,33 @@ Final Answer: <结论 + Markdown 表格>
 
 ### 关键 Prompt 规则（部分）
 
-| 规则 | 描述 |
-|------|------|
-| 数据预查 | 有明确日期时，先调用 `check_date_available`；日期区间只查起始日期，不因结束日期无数据而停止 |
-| 业务场景追问 | 询问"xx业务流量"时，先追问时间范围，再追问资源位；用户确认后在四张明细表中联合查询 |
-| 资源位概念区分 | `resource_name` = 资源位类型（腰封/卡片位），`item_name` = 具体活动名；"哪些资源位"按前者分组，"有哪些活动"按后者分组 |
-| 四表联查 | 业务关键词查询必须覆盖：`5100_detail`（service_name）、`core_detail`（item_name）、`resource_detail`（item_name）、`search_detail`（search_name）|
-| 上下文保持 | 携带最近 6 轮对话，业务关键词在后续请求中自动保持，禁止直接查 `resource_total` 全量表 |
-| 合并查询 | 同比/环比必须用 `IN` 一次查出两个时期 |
+| 规则       | 描述                                       |
+| -------- | ---------------------------------------- |
+| 数据预查     | 有明确日期时，先调用 `check_date_available`；日期区间只查起始日期，不因结束日期无数据而停止 |
+| 业务场景追问   | 询问"xx业务流量"时，先追问时间范围，再追问资源位；用户确认后在四张明细表中联合查询 |
+| 资源位概念区分  | `resource_name` = 资源位类型（腰封/卡片位），`item_name` = 具体活动名；"哪些资源位"按前者分组，"有哪些活动"按后者分组 |
+| 四表联查     | 业务关键词查询必须覆盖：`5100_detail`（service_name）、`core_detail`（item_name）、`resource_detail`（item_name）、`search_detail`（search_name） |
+| 上下文保持    | 携带最近 6 轮对话，业务关键词在后续请求中自动保持，禁止直接查 `resource_total` 全量表 |
+| 合并查询     | 同比/环比必须用 `IN` 一次查出两个时期                   |
 | SQL 汇总强制 | 多行数据汇总必须用 SQL `SUM() + GROUP BY`，严禁在回答中手写加法公式 |
-| 红线规则 | 未拿到真实数据，严禁使用 XXX/YYY 等占位符 |
-| 整年拦截 | 仅有年份无月份时，主动向用户澄清粒度 |
-| 解析错误恢复 | `handle_parsing_errors` 自动提取 Final Answer 内容，异常改为 `st.markdown` 展示而非红框 |
-| 最终格式 | 输出必须以 `Final Answer: ` 开头，否则解析器报错 |
-| 大结果限制 | 明细查询末尾自动加 `LIMIT 50` |
-| 资源位展示 | `resource_name` 字段一律以"中文名（英文名）"格式展示 |
+| 红线规则     | 未拿到真实数据，严禁使用 XXX/YYY 等占位符                |
+| 整年拦截     | 仅有年份无月份时，主动向用户澄清粒度                       |
+| 解析错误恢复   | `handle_parsing_errors` 自动提取 Final Answer 内容，异常改为 `st.markdown` 展示而非红框 |
+| 最终格式     | 输出必须以 `Final Answer: ` 开头，否则解析器报错        |
+| 大结果限制    | 明细查询末尾自动加 `LIMIT 50`                     |
+| 资源位展示    | `resource_name` 字段一律以"中文名（英文名）"格式展示      |
 
 ---
 
 ## 常见问题
 
-| 错误信息 | 原因 | 解决方案 |
-|---------|------|---------|
-| `未找到 TONGYI_API_KEY` | .env 未配置 API Key | 参考 `.env.example` 补全配置 |
-| `系统初始化失败` | 数据库连接异常 | 检查 MySQL 服务状态及 `.env` 中的 DB 配置 |
-| `OUTPUT_PARSING_FAILURE` | Agent 未按格式回答 | 已由 `handle_parsing_errors` 捕获，提示用户重新提问 |
-| 查询结果为空 | 所查日期暂无数据 | 系统会提示"暂无数据，可换一种提问方式" |
-| Agent 提前终止 | 推理链过长 | 已将 `max_iterations` 设为 15，可按需调大 |
+| 错误信息                     | 原因               | 解决方案                                   |
+| ------------------------ | ---------------- | -------------------------------------- |
+| `未找到 TONGYI_API_KEY`     | .env 未配置 API Key | 参考 `.env.example` 补全配置                 |
+| `系统初始化失败`                | 数据库连接异常          | 检查 MySQL 服务状态及 `.env` 中的 DB 配置         |
+| `OUTPUT_PARSING_FAILURE` | Agent 未按格式回答     | 已由 `handle_parsing_errors` 捕获，提示用户重新提问 |
+| 查询结果为空                   | 所查日期暂无数据         | 系统会提示"暂无数据，可换一种提问方式"                   |
+| Agent 提前终止               | 推理链过长            | 已将 `max_iterations` 设为 15，可按需调大        |
 
 ---
 
@@ -326,15 +326,15 @@ MIT
 
 新增对以下模糊时间词汇的自动展开，展开后直接以具体日期传入 Agent：
 
-| 输入示例 | 展开结果 |
-|---------|---------|
-| `近7天` | `2026年03月24日至2026年03月29日` |
-| `近2周` | `2026年03月16日至2026年03月29日` |
-| `近3个月` | `2025年12月31日至2026年03月29日` |
-| `至今` / `截止今日` | 替换为今天具体日期 |
-| `截止昨日` / `截止昨天` | 替换为昨天具体日期 |
-| `本月` | `2026年3月` |
-| `上月` | `2026年2月` |
+| 输入示例            | 展开结果                      |
+| --------------- | ------------------------- |
+| `近7天`           | `2026年03月24日至2026年03月29日` |
+| `近2周`           | `2026年03月16日至2026年03月29日` |
+| `近3个月`          | `2025年12月31日至2026年03月29日` |
+| `至今` / `截止今日`   | 替换为今天具体日期                 |
+| `截止昨日` / `截止昨天` | 替换为昨天具体日期                 |
+| `本月`            | `2026年3月`                 |
+| `上月`            | `2026年2月`                 |
 
 #### 2. 业务场景查询规则（Prompt 新增）
 
@@ -366,3 +366,33 @@ MIT
 - `resource_total` 补充 `king_kong`（金刚位）映射
 - `5100_detail` 描述更正为"所有服务使用明细数据，包含服务超市及部分其他资源位"，补充 `resource_name` 字段说明
 - 回答要求新增资源位中英文展示规则：`resource_name` 字段一律用"中文名（英文名）"格式
+
+
+
+------
+
+### 2026-04-02 - 智能问答系统切换本地大模型 (`streamlit_sql2nlp_local.py`)
+
+文件： `streamlit_sql2nlp_local.py`
+
+#### 变更内容
+
+- **替换 LLM 后端**：将在线千问 API（`Tongyi / qwen-plus`）替换为本地 Ollama 部署的 `qwen2.5:7b`，不再依赖 `DASHSCOPE_API_KEY` 环境变量。
+- **依赖更新**：
+  - 移除：`langchain_community.llms.Tongyi`
+  - 新增：`langchain_ollama.OllamaLLM`（需安装 `langchain-ollama` 包）
+- **模型选型说明**：初始尝试 `qwen2.5:3b`，但因参数量不足（30亿），模型无法稳定遵循 ReAct Agent 格式（反复使用自编工具名、SQL 被 markdown 代码块包裹导致解析失败），改用 `qwen2.5:7b`。
+
+#### 使用前提
+
+1. 已安装并启动 Ollama 服务：`ollama serve`
+
+2. 已拉取模型：`ollama pull qwen2.5:7b`
+
+3. 已安装新依赖：
+
+   ```bash
+   C:\路径已做脱敏\venv311\Scripts\pip.exe install langchain-ollama
+   ```
+
+### 
